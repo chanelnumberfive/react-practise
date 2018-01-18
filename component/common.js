@@ -3,6 +3,8 @@ import {
   Route,
   Link	
 } from 'react-router-dom';
+import Loadable from 'react-loadable';
+
 const Component={
 	init:function(title,position){
 		document.title=title;
@@ -14,9 +16,6 @@ const Component={
 			this.state={
 				items:['Mac','iPad','iPhone','Watch','Tv','Music','Support']
 			}
-		}
-		shouldComponentUpdate(nextProps, nextState) {
-		  	return true;
 		}
 		render(){
 			let path=(window.location.pathname||'').split('/');	
@@ -34,7 +33,7 @@ const Component={
 			);
 		}
 	},
-	GlobalFooter:class extends React.Component{
+	GlobalFooter:class extends React.PureComponent{
 		constructor(props){
 			super(props);
 			this.state={
@@ -186,19 +185,19 @@ const Component={
 								 		paths=window.location.pathname.split('/'),
 										className=paths[2]===val.replace('/','')?'active icon-nav-a':'icon-nav-a';
 									 return (
-										<li key={index}><Link to={(value.to&&(props.pathName+'/'+value.to))||(props.pathName+'/'+value.text.toLowerCase().replace(/ /g,'-'))} className={className}><figure className={value.className+' icon-nav-figure'}></figure>{value.text}</Link></li>
+										<li key={index}><Link to={(value.to&&(props.pathname+'/'+value.to))||(props.pathname+'/'+value.text.toLowerCase().replace(/ /g,'-'))} className={className}><figure className={value.className+' icon-nav-figure'}></figure>{value.text}</Link></li>
 									 );
 								})}
 							</ul>
 						</nav> 
-						<Route path={props.pathName} component={
+						<Route path={props.pathname} component={
 							function(){
 								return props.children; 
 							}
 						}/>  
 						{props.items.map(function(value,index){
 							return (
-								<Route key={index} path={(value.to&&(props.pathName+'/'+value.to))||(props.pathName+'/'+value.text.toLowerCase().replace(/ /g,'-'))} component={function(){
+								<Route key={index} path={(value.to&&(props.pathname+'/'+value.to))||(props.pathname+'/'+value.text.toLowerCase().replace(/ /g,'-'))} component={function(){
 									return props.children;
 								}}/>
 							);
@@ -207,6 +206,46 @@ const Component={
 				);
 			}	
 		}	
-	}
+	},
+	GetPage:function(props){
+		let pathname=props.match.params.id;
+		if(!pathname){
+			pathname='apple';
+		}
+		const Page=Loadable({
+			loader:function(){
+				return import('./../component/'+pathname+'.js').catch(function(res){
+					return Component.Nothing;
+				});
+			},
+			loading:function(props){
+				if(props.error){
+					return Component.Nothing;	
+				}else if (props.timedOut){
+					return Component.Loading;
+				}else if(props.pastDelay){
+					return Component.Loading;
+				}else{
+					return Component.Loading;
+				}
+			},
+			timeout:10000
+		});
+		return <Page {...props} />;
+	},	
+	Loading:function(props){
+		return (
+			<h1 className="layout-tr-center" style={props.style||{padding:'100px',textAlign:'center'}}>loading...</h1>
+		);
+	},
+	Nothing:function(){
+		return (
+			<h1 className='layout-tr-center' style={{padding:'100px',textAlign:'center'}}>
+				The page you’re looking for<br/>
+				can’t be found or<br/>
+				still in developing!
+			</h1>
+		);
+	}	
 }
 export default Component
